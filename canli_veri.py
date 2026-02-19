@@ -1,3 +1,6 @@
+import os
+
+from flask.cli import load_dotenv
 import requests
 import pandas as pd
 import sqlalchemy
@@ -5,12 +8,12 @@ import urllib
 import time
 from datetime import datetime
 
-# ==========================================
-# 1. AYARLAR VE KİMLİK BİLGİLERİ
-# ==========================================
-# Telegram Ayarları (BURALARI KENDİ BİLGİLERİNLE DOLDUR)
-TOKEN = "8211810182:AAG408mteKNxG02so75DHvbgJL_eXSc8l5k"
-CHAT_ID = "1387971751"
+# Gizli kasayı (.env) aç
+load_dotenv()
+
+# Şifreleri kasadan güvenli bir şekilde çek
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # SQL Server Ayarları
 Server = r'.\SQLEXPRESS05'
