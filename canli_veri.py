@@ -1,6 +1,6 @@
 import os
 
-from flask.cli import load_dotenv
+from dotenv import load_dotenv
 import requests
 import pandas as pd
 import sqlalchemy
@@ -8,19 +8,25 @@ import urllib
 import time
 from datetime import datetime
 
-# Gizli kasayı (.env) aç
+#.env aç
 load_dotenv()
 
 # Şifreleri kasadan güvenli bir şekilde çek
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
 
-# SQL Server Ayarları
-Server = r'.\SQLEXPRESS05'
+## SQL Server Ayarları
+Server = r'host.docker.internal,1433'  # Docker içinden SQL Server'a bağlanmak için özel adres ve port
 Database = 'DogusStaj'
-Driver = 'ODBC Driver 17 for SQL Server'
+Driver = 'ODBC Driver 18 for SQL Server'
+
 Tablo_Adi = 'Kripto_Fiyatlari'
 
+
+# GÜVENLİ BAĞLANTI CÜMLESİ: Trusted_Connection sildik, yerine UID ve PWD koyduk!
+conn_str = f'DRIVER={{{Driver}}};SERVER={Server};DATABASE={Database};UID={DB_USER};PWD={DB_PASS};TrustServerCertificate=yes;'
 # Alarm Seviyesi (Şu an BTC kaç paraysa, ondan biraz daha YÜKSEK bir sayı yaz ki hemen alarm versin, test edelim)
 KRITIK_FIYAT_ALT_SINIR = 98000.0  # Örneğin BTC 96 binde ise, 98 binin altı diye hemen alarm çalar
 
@@ -38,16 +44,16 @@ def telegram_alarm_gonder(mesaj):
         print(f"SİSTEM HATASI: {e}")
 
 # SQL Bağlantısını Kur
-conn_str = f'DRIVER={{{Driver}}};SERVER={Server};DATABASE={Database};Trusted_Connection=yes;'
+conn_str = f'DRIVER={{{Driver}}};SERVER={Server};DATABASE={Database};UID={DB_USER};PWD={DB_PASS};TrustServerCertificate=yes;'
 quoted_conn_str = urllib.parse.quote_plus(conn_str)
 engine = sqlalchemy.create_engine(f'mssql+pyodbc:///?odbc_connect={quoted_conn_str}')
-
 
 # 3. ANA MOTOR (SONSUZ DÖNGÜ)
 print("AKILLI KRİPTO BOTU BAŞLATILDI!")
 telegram_alarm_gonder(" Kripto Botu Başlatıldı. Piyasalar izleniyor...")
 
-for i in range(1, 11):  # Test için 10 kere dönsün yeter
+sayac = 1
+while True:  
     try:
         # Veriyi Çek
         url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
@@ -60,18 +66,19 @@ for i in range(1, 11):  # Test için 10 kere dönsün yeter
         # SQL'e Kaydet
         df = pd.DataFrame([{'Sembol': veri['symbol'], 'Fiyat': fiyat, 'Tarih': tarih}])
         df.to_sql(Tablo_Adi, con=engine, if_exists='append', index=False)
-        print(f"[{i}/10]  {tarih} - BTC: {fiyat} $ -> Veritabanına Yazıldı.")
+        print(f"[{sayac}]  {tarih} - BTC: {fiyat} $ -> Veritabanına Yazıldı.")
         
-        # ALARM KONTROLÜ (ZEKA BURADA)
+        #  ALARM KONTROLÜ
         if fiyat < KRITIK_FIYAT_ALT_SINIR:
             alarm_mesaji = f" DİKKAT ŞEF! \nBitcoin çakılıyor!\nAnlık Fiyat: {fiyat} $\nZaman: {tarih}"
             telegram_alarm_gonder(alarm_mesaji)
             print("   -> Telegram Alarmı Gönderildi!")
             
         time.sleep(5)
+        sayac += 1 # Sayacı her adımda 1 artır
         
     except Exception as e:
-        print(f" Hata: {e}")
+        print(f"Hata: {e}")
         time.sleep(5)
 
 print(" Sistem Durdu.")
