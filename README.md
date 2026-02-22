@@ -145,7 +145,7 @@ The `Kripto_Fiyatlari` table is connected directly to Power BI Desktop via SQL S
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/ensar-sencan/Real-Time-Data-Engineering-Portfolio.git
+   git clone https://github.com/ensar-sencan/Real-Time-Data-Engineering-Pipeline.git
    ```
 
 2. Install dependencies:
